@@ -1,26 +1,15 @@
 {
-  "name": "runed-forms-root",
-  "version": "0.1.0",
-  "author": "Gyen Abubakar Sadick <gyenabubakar@gmail.com> (www.gyen.dev)",
-  "description": "A simple form validation library for Svelte and SvelteKit applications, build for the ground up with Svelte Runes.",
+  "name": "root",
   "type": "module",
   "workspaces": [
-    "runed-forms",
+    "source",
+    "documentation",
     "examples/*"
   ],
   "scripts": {
     "format": "prettier --write .",
     "lint": "prettier --check . && eslint .",
-    "clean": "rimraf node_modules build dist .svelte-kit .out .cache .vite"
-  },
-  "keywords": [
-    ""
-  ],
-  "license": "MIT",
-  "homepage": "https://github.com/gyenabubakar/runed-forms",
-  "bugs": "https://github.com/gyenabubakar/runed-forms/issues",
-  "repository": {
-    "url": "https://github.com/gyenabubakar/runed-forms"
+    "clean": "turbo clean && rimraf node_modules build dist .svelte-kit .out .cache .vite"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.5",
@@ -32,9 +21,12 @@
     "prettier": "^3.4.2",
     "prettier-plugin-svelte": "^3.3.3",
     "rimraf": "^6.0.1",
-    "typescript-eslint": "^8.20.0"
+    "turbo": "^2.5.2",
+    "typescript-eslint": "^8.20.0",
+    "typescript": "^5.0.0",
+    "vite": "^6.2.6",
+    "vitest": "^3.0.0"
   },
-  "packageManager": "pnpm@10.10.0",
   "engines": {
     "node": ">=18.13.0"
   }
