@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "author": "Gyen Abubakar Sadick <gyenabubakar@gmail.com> (www.gyen.dev)",
-  "description": "A simple form validation library for Svelte and SvelteKit applications, build for the ground up with Svelte Runes.",
+  "description": "A form validation library for Svelte & SvelteKit applications powered by Svelte's Rune primitives.",
   "license": "MIT",
   "homepage": "https://runed-forms.gyen.dev",
   "bugs": "https://github.com/gyenabubakar/runed-forms/issues",
