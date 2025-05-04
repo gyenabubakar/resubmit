@@ -102,7 +102,6 @@ dist
 
 # vuepress v2.x temp and cache directory
 .temp
-.cache
 
 # vitepress build output
 **/.vitepress/dist
@@ -134,3 +133,32 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+.idea
+.svelte-kit
+
+*storybook.log
+
+node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+/dist
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
