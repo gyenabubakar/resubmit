@@ -13,7 +13,7 @@
     "clean": "rimraf node_modules build dist .svelte-kit .out .cache .vite"
   },
   "dependencies": {
-    "runed-forms": "*"
+    "runed-forms": "workspace:*"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^3",
@@ -32,6 +32,9 @@
     "playwright": "^1.52.0",
     "storybook": "^8.6.12",
     "svelte": "^5.0.0",
-    "svelte-check": "^4.0.0"
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^6.2.6",
+    "vitest": "^3.0.0"
   }
 }

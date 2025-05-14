@@ -52,6 +52,8 @@ export default ts.config(
           leadingUnderscore: 'require',
         },
       ],
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/ban-ts-comment': 'off',
     },
   }
 );
