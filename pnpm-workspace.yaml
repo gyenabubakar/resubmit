@@ -1,4 +1,3 @@
 packages:
-  - source
-  - documentation
-  - examples
+   - source
+   - website

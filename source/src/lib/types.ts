@@ -1,7 +1,11 @@
 export type DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends Record<string | number | symbol, any> ? DeepPartial<T[K]> : T[K];
+	[K in keyof T]?: T[K] extends Record<string | number | symbol, any> ? DeepPartial<T[K]> : T[K];
 };
 
 export type DeepBoolean<T> = {
-  [K in keyof T]?: T[K] extends Record<string | number | symbol, any> ? DeepBoolean<T[K]> : boolean;
+	[K in keyof T]?: T[K] extends Record<string | number | symbol, any>
+		? DeepBoolean<T[K]>
+		: boolean;
 };
+
+export type MaybePromise<T> = T | Promise<T>;

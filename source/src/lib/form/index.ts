@@ -1,2 +1,2 @@
 export * from './form.svelte';
-export * from './form.types';
+export * from './form.types.js';

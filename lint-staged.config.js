@@ -1,3 +1,3 @@
 export default {
-  '*': (_files) => ['npm run lint', 'npm run format'],
+	'*': (_files) => ['npm run lint', 'npm run format'],
 };
