@@ -1,0 +1,9 @@
+{
+	"name": "@shared/utils",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"devDependencies": {
+		"@shared/types": "workspace:*"
+	}
+}

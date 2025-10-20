@@ -1,27 +1,26 @@
 import { getContext, onMount, setContext } from 'svelte';
+import { DEFAULT_FORM_CONFIG, ObjectPath } from '@shared/utils';
 import { type StandardSchemaV1 } from '@standard-schema/spec';
-import merge from 'lodash.merge';
+import { cloneDeep, merge } from 'lodash-es';
 import { enhance as kitEnhance } from '$app/forms';
-import { DEFAULT_FORM_CONFIG } from '$lib/form/constants';
-import { ObjectPath } from '$lib/object-path';
+import type { SubmitHandler } from '$lib/form.types';
 import type {
+	DeepBoolean,
+	DeepPartial,
 	FieldProps,
-	FlatInputKey,
-	FormField,
+	FormConfig,
 	GenericSchema,
-	RunedFormConfig,
-	SubmitHandler,
-} from '$lib/form/form.types';
-import type { DeepBoolean, DeepPartial } from '$lib/types';
+	GetValueAtPath,
+	KeyPath,
+	ValidationIssues,
+} from '@shared/types';
 
-export class RunedForm<
+export class Form<
 	Schema extends GenericSchema,
 	Input extends StandardSchemaV1.InferInput<Schema> = StandardSchemaV1.InferInput<Schema>,
-	Issues extends DeepPartial<Record<FormField<Input>, string[]>> = DeepPartial<
-		Record<FormField<Input>, string[]>
-	>,
+	Issues extends ValidationIssues<Input> = ValidationIssues<Input>,
 > {
-	readonly #config: RunedFormConfig<Schema>;
+	readonly #config: FormConfig<Schema>;
 	readonly #schema: Schema;
 
 	#forceTouched = $state(false);
@@ -36,7 +35,7 @@ export class RunedForm<
 
 	fields: Input = $state({} as Input);
 
-	constructor(schema: Schema, config: RunedFormConfig<Schema> = DEFAULT_FORM_CONFIG) {
+	constructor(schema: Schema, config: FormConfig<Schema> = DEFAULT_FORM_CONFIG) {
 		this.#schema = schema;
 		this.#config = merge(config, DEFAULT_FORM_CONFIG);
 
@@ -82,17 +81,23 @@ export class RunedForm<
 	 * and the values are arrays of messages. `#issues` stores what errors the user should see, and is based on whether the form and or fields are touched.
 	 * The `~form` key is used for root-level issues.
 	 */
-	readonly issues = $derived(this.#issues);
+	get issues() {
+		return this.#issues;
+	}
 
 	/**
 	 * Keeps track of the fields' touched state.
 	 */
-	readonly touched = $derived(this.#touched);
+	get touched() {
+		return this.#touched;
+	}
 
 	/**
 	 * Keeps track of the fields' dirty state.
 	 */
-	readonly dirty = $derived(this.#dirty);
+	get dirty() {
+		return this.#dirty;
+	}
 
 	/**
 	 * Is the form valid? The form is validated every time the fields are changed.
@@ -111,48 +116,56 @@ export class RunedForm<
 	/**
 	 * Meta-information about the form—rarely used information.
 	 */
-	readonly meta = $derived.by(() => ({
-		id: this.#config.id,
+	get meta() {
+		return {
+			id: this.#config.id,
 
-		/**
-		 * Is the entire form or at least one field touched?
-		 */
-		touched: this.#forceTouched || Object.values(this.#touched).some(Boolean),
+			/**
+			 * Is the entire form or at least one field touched?
+			 */
+			touched: this.#forceTouched || Object.values(this.#touched).some(Boolean),
 
-		/**
-		 * Is the entire form or at least one field dirty?
-		 */
-		dirty: Object.values(this.#dirty).some(Boolean),
+			/**
+			 * Is the entire form or at least one field dirty?
+			 */
+			dirty: Object.values(this.#dirty).some(Boolean),
 
-		/**
-		 * Is the form currently being validated?
-		 */
-		validating: this.#validating,
+			/**
+			 * Is the form currently being validated?
+			 */
+			validating: this.#validating,
 
-		/**
-		 * The default values of the form.
-		 */
-		initialValues: this.#config.initialValues,
-	}));
-
-	private setTouched(key: FlatInputKey<Input>, value = true) {
-		ObjectPath.set(this.#touched, this.getPathFromKey(key), value);
+			/**
+			 * The default values of the form.
+			 */
+			initialValues: this.#config.initialValues,
+		};
 	}
 
-	private setDirty(key: FlatInputKey<Input>, value = true) {
-		ObjectPath.set(this.#dirty, this.getPathFromKey(key), value);
+	private setTouched<const P extends KeyPath<DeepBoolean<Input>>>(
+		path: P,
+		value = true as GetValueAtPath<DeepBoolean<Input>, P>
+	) {
+		ObjectPath.set(this.#touched, path, value);
 	}
 
-	private setValue(key: FlatInputKey<Input>, value: any) {
-		this.setTouched(key);
-		this.setDirty(key);
-		ObjectPath.set(this.fields, this.getPathFromKey(key), value);
+	private setDirty<const P extends KeyPath<DeepBoolean<Input>>>(
+		path: P,
+		value = true as GetValueAtPath<DeepBoolean<Input>, P>
+	) {
+		ObjectPath.set(this.#dirty, path, value);
+	}
+
+	private setValue<const P extends KeyPath<Input>>(path: P, value: GetValueAtPath<Input, P>) {
+		this.setTouched(path);
+		this.setDirty(path);
+		ObjectPath.set(this.fields, path, value);
 		this.validate();
 	}
 
-	private setIssue(key: FlatInputKey<Input>, value: string[]) {
+	private setIssue<const P extends KeyPath<Issues>>(key: P, value: GetValueAtPath<Issues, P>) {
 		this.setTouched(key);
-		ObjectPath.set(this.#issues, this.getPathFromKey(key), value);
+		ObjectPath.set(this.#issues, key, value);
 	}
 
 	private setValues(values: DeepPartial<Input>) {
@@ -170,7 +183,7 @@ export class RunedForm<
 
 		const { issues } = await this.validateSilently();
 
-		this.#allIssues = [...(issues ?? [])];
+		this.#allIssues = cloneDeep(issues) as StandardSchemaV1.Issue[];
 
 		const tempIssues = {} as Issues;
 
@@ -183,13 +196,17 @@ export class RunedForm<
 					continue;
 				}
 
-				const isTouched = ObjectPath.get(this.#touched, issue.path) || this.#forceTouched;
+				const path = issue.path.map((segment) =>
+					typeof segment === 'object' ? segment.key : segment
+				) as KeyPath<Issues>;
+
+				const isTouched = ObjectPath.get(this.#touched, path, this.#forceTouched);
 				if (!isTouched) continue;
 
-				const existingIssues = ObjectPath.get<Issues>(tempIssues, issue.path, []) as string[];
+				const existingIssues = ObjectPath.get(tempIssues, path, []);
 				const uniqueIssues = Array.from(new Set([...existingIssues, issue.message]));
 
-				ObjectPath.set(tempIssues, issue.path, uniqueIssues);
+				ObjectPath.set(tempIssues, path, uniqueIssues);
 			}
 		}
 
@@ -198,7 +215,7 @@ export class RunedForm<
 		this.#validating = false;
 	}
 
-	private validateField(key: FlatInputKey<Input>) {
+	private validateField(key: KeyPath<Input>) {
 		const issues = this.getFieldIssues(key);
 		const isTouched = ObjectPath.get(this.#touched, key) || this.#forceTouched;
 		const isDirty = ObjectPath.get(this.#dirty, key);
@@ -210,25 +227,25 @@ export class RunedForm<
 		};
 	}
 
-	private field(key: FlatInputKey<Input>) {
-		const issues = this.getFieldIssues(key);
-
+	private field(path: KeyPath<Input>) {
 		const props: FieldProps = {
-			name: key.toString(),
+			name: path.toString(),
 			oninput: () => {
-				this.setTouched(key);
-				this.setDirty(key);
+				this.setTouched(path);
+				this.setDirty(path);
 				if (this.validatableActions.includes('input')) {
 					this.validate();
 				}
 			},
 			onblur: () => {
-				this.setTouched(key);
+				this.setTouched(path);
 				if (this.validatableActions.includes('blur')) {
 					this.validate();
 				}
 			},
 		};
+
+		const issues = this.getFieldIssues(path);
 
 		return {
 			props,
@@ -292,56 +309,56 @@ export class RunedForm<
 			 * @param key The key of the field to set.
 			 * @param value The value to set.
 			 */
-			setTouched: this.setTouched.bind(this),
+			setTouched: this.setTouched.bind(this) as typeof this.setTouched,
 
 			/**
 			 * Sets the dirty state of a field. If no value is provided, it will be set to `true`.
 			 * @param key The key of the field to set.
 			 * @param value The value to set.
 			 */
-			setDirty: this.setDirty.bind(this),
+			setDirty: this.setDirty.bind(this) as typeof this.setDirty,
 
 			/**
 			 * Sets the value of a field and marks it as touched and dirty. `setValue` disregards the `validateOn` config.
 			 * @param key The key of the field to set.
 			 * @param value The value to set.
 			 */
-			setValue: this.setValue.bind(this),
+			setValue: this.setValue.bind(this) as typeof this.setValue,
 
 			/**
 			 * Sets the issue of a field and marks it as touched. `setIssue` disregards the `validateOn` config.
 			 * @param key The key of the field to set.
 			 * @param value The issue to set.
 			 */
-			setIssue: this.setIssue.bind(this),
+			setIssue: this.setIssue.bind(this) as typeof this.setIssue,
 
 			/**
 			 * Sets the values of the form and marks the fields as touched and dirty. `setValues` disregards the `validateOn` config.
 			 * @param values The values to set.
 			 */
-			setValues: this.setValues.bind(this),
+			setValues: this.setValues.bind(this) as typeof this.setValues,
 
 			/**
 			 * Sets the issues of the form and marks the fields as touched. `setIssues` disregards the `validateOn` config.
 			 * @param issues The issues to set.
 			 */
-			setIssues: this.setIssues.bind(this),
+			setIssues: this.setIssues.bind(this) as typeof this.setIssues,
 
 			/**
 			 * Validates the form and sets the issues. Issues will only be recorded for touched fields.
 			 */
-			validate: this.validate.bind(this),
+			validate: this.validate.bind(this) as typeof this.validate,
 
 			/**
 			 * Resets the form to its initial values. The initial values are set in the config.
 			 * @param values The values to reset to. If not provided, the form will be reset to the initial values configured. An empty object will be used if nothing was configured.
 			 */
-			reset: this.reset.bind(this),
+			reset: this.reset.bind(this) as typeof this.reset,
 
 			/**
 			 * Returns the reactive issues of a field and props that can be passed to native HTML form elements.
 			 */
-			field: this.field.bind(this),
+			field: this.field.bind(this) as typeof this.field,
 		};
 	}
 
@@ -350,26 +367,23 @@ export class RunedForm<
 	 * @param formId The id of the form to get.
 	 */
 	static use<Schema extends GenericSchema>(formId: string) {
-		const form = getContext<RunedForm<Schema>>(`runed-form:${formId}`);
+		const form = getContext<Form<Schema>>(`runed-form:${formId}`);
 		if (!form) {
 			throw new Error(`RunedForm with id "${formId}" not found in context.`);
 		}
 		return form;
 	}
 
-	private getFieldIssues(key: FlatInputKey<Input>): string[] {
-		return ObjectPath.get(this.#issues, this.getPathFromKey(key), []);
-	}
-
-	private getPathFromKey(key: FlatInputKey<Input>) {
-		if (typeof key !== 'string') return key;
-		return key.includes('.') ? key.split('.') : key;
+	private getFieldIssues(path: KeyPath<Input>): string[] {
+		return ObjectPath.get(this.#issues, path, []);
 	}
 
 	private async validateSilently() {
 		let result = this.#schema['~standard'].validate(this.fields);
+
 		if (result instanceof Promise) result = await result;
-		if (result.issues) return { issues: result.issues, value: undefined };
+		if (!('value' in result) || !result.value) return { issues: result.issues, value: undefined };
+
 		return { value: result.value };
 	}
 }

@@ -1,0 +1,6 @@
+{
+	"name": "@shared/types",
+	"exports": {
+		".": "./src/index.ts"
+	}
+}

@@ -1,6 +1,7 @@
 {
-	"name": "root",
+	"name": "@resubmit/root",
 	"type": "module",
+	"description": "A form validation library for Svelte, Vue, and React apps, supporting any validation library that conforms to Standard Schema.",
 	"scripts": {
 		"format": "prettier --log-level=error --write .",
 		"lint": "prettier --check . && eslint .",
@@ -9,6 +10,12 @@
 	},
 	"engines": {
 		"node": ">=20.18.0"
+	},
+	"packageManager": "pnpm@9.1.0",
+	"dependencies": {
+		"@standard-schema/spec": "1.0.0",
+		"@types/lodash-es": "^4.17.12",
+		"lodash-es": "^4.17.21"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
@@ -24,6 +31,5 @@
 		"prettier-plugin-tailwindcss": "^0.6.13",
 		"rimraf": "^6.0.1",
 		"typescript-eslint": "^8.20.0"
-	},
-	"packageManager": "pnpm@9.1.0"
+	}
 }

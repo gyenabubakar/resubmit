@@ -3,36 +3,56 @@ import { Button } from 'shadcn/button';
 import * as Card from 'shadcn/card';
 import { Input } from 'shadcn/input';
 import { Label } from 'shadcn/label';
+import * as v from 'valibot';
 import { z } from 'zod/v4';
-import { RunedForm } from '$lib';
+import { Form } from '$lib';
 
 type Issues = string[];
 
-const schema = z.object({
+// eslint-disable-next-line
+const zSchema = z.object({
 	// `form` isn't needed here, this is to demonstrate how to access nested fields
-	form: z.object({
-		email: z.email().min(10, '10 chars minimum').trim(),
-		password: z.string().min(8, '8 chars minimum').max(32, '32 chars maximum'),
+	account: z.object({
+		emails: z.array(z.email().trim().min(10, '10 characters minimum')),
+		password: z.string().min(8, '8 characters minimum').max(32, '32 characters maximum'),
 	}),
+
 	rememberMe: z.boolean(),
 });
 
-const form = new RunedForm(schema, {
+const vSchema = v.object({
+	account: v.object({
+		emails: v.array(
+			v.pipe(v.string(), v.email(), v.trim(), v.minLength(10, '10 characters minimum'))
+		),
+		password: v.pipe(
+			v.string(),
+			v.minLength(8, '8 characters minimum'),
+			v.maxLength(32, '32 characters maximum')
+		),
+	}),
+
+	rememberMe: v.boolean(),
+});
+
+// you may swap `vSchema` with `zSchema` and it'll work just the same
+const form = new Form(vSchema, {
 	initialValues: {
 		rememberMe: false,
-		form: {
-			email: '',
+		account: {
+			emails: [''],
 			password: '',
 		},
 	},
 });
 
-const { field } = form.methods();
+const { field, setDirty } = form.methods();
 
-$inspect(form.issues);
+setDirty(['account', 'emails'], [false]);
+// $inspect();
 </script>
 
-<Card.Root class="mx-auto max-w-md">
+<Card.Root class="w-md mx-auto">
 	<Card.Header>
 		<Card.Title class="text-2xl">Login</Card.Title>
 		<Card.Description>Enter your email below to login to your account</Card.Description>
@@ -41,27 +61,27 @@ $inspect(form.issues);
 	<Card.Content>
 		<form class="grid gap-4">
 			<div class="grid gap-2">
-				<Label for="email">Email</Label>
+				<Label for="emails">Emails</Label>
 				<Input
-					{...field('form.email').props}
-					id="email"
+					{...field(['account', 'emails']).props}
+					id="emails"
 					type="email"
 					placeholder="m@example.com"
-					bind:value={form.fields.form.email}
+					bind:value={form.fields.account.emails}
 				/>
-				{@render errors(field('form.email').issues)}
+				{@render errors(field(['account', 'emails']).issues)}
 			</div>
 
 			<div class="grid gap-2">
 				<Label for="password">Password</Label>
 				<Input
-					{...field('form.password').props}
+					{...field(['account', 'password']).props}
 					id="password"
 					type="password"
-					bind:value={form.fields.form.password}
+					bind:value={form.fields.account.password}
 					required
 				/>
-				{@render errors(field('form.password').issues)}
+				{@render errors(field(['account', 'password']).issues)}
 			</div>
 
 			<div class="">

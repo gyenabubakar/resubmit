@@ -1,3 +1,4 @@
 packages:
-   - source
+   - frameworks/*
+   - shared/*
    - website

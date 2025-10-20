@@ -1,11 +1,11 @@
-import type { GenericSchema, RunedFormConfig } from '$lib';
+import type { GenericSchema, FormConfig } from '@shared/types';
 
 export const DEFAULT_FORM_CONFIG = {
-	id: 'runed-form',
+	id: undefined,
 	initialValues: {},
 	initialTouched: {},
 	validateOnMount: false,
 	revalidateOn: undefined,
 	reset: true,
 	invalidateAll: false,
-} satisfies RunedFormConfig<GenericSchema>;
+} satisfies FormConfig<GenericSchema>;

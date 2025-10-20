@@ -5,7 +5,7 @@ import prettier from 'eslint-config-prettier';
 import svelte from 'eslint-plugin-svelte';
 import globals from 'globals';
 import ts from 'typescript-eslint';
-import svelteConfig from './source/svelte.config.js';
+import svelteConfig from './packages/svelte/svelte.config.js';
 
 const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
 
@@ -59,6 +59,14 @@ export default ts.config(
 			'@typescript-eslint/no-explicit-any': 'off',
 			'@typescript-eslint/ban-ts-comment': 'off',
 			'svelte/no-inspect': 'off',
+			'no-restricted-syntax': [
+				'error',
+				{
+					message:
+						'Do not import default from lodash-es. Use a named import ({ get }) instead.',
+					selector: 'ImportDeclaration[source.value="lodash-es"] ImportDefaultSpecifier',
+				},
+			],
 		},
 	}
 );
